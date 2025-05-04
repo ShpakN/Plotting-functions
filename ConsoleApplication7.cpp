@@ -1,9 +1,10 @@
-﻿#include <SFML/Graphics.hpp>
+#include <SFML/Graphics.hpp>
 #include <vector>
 #include <string>
 #include <cmath>
 #include <iostream>
-
+#include <sstream>
+#include <fstream>
 class Point {
 public:
     double x, y;
@@ -86,7 +87,32 @@ private:
     Function* function;
 public:
     Graph(Function* func) : function(func) {}
-
+    std::string serialize() const {
+        std::ostringstream oss;
+        // Здесь вы должны сериализовать данные графика
+        // Например, если у вас есть точки графика:
+        for (const auto& point : points) {
+            oss << point.x << "," << point.y << " "; // Пример формата
+        }
+        return oss.str();
+    }
+    Graph() {
+        // Инициализация данных графика, если необходимо
+        // Например, можно инициализировать вектор точек
+        points = std::vector<Point>(); // Предполагая, что у вас есть структура Point
+    }
+    void deserialize(const std::string& data) {
+        std::istringstream iss(data);
+        std::string point;
+        points.clear();
+        while (iss >> point) {
+            double x, y;
+            char comma; // Для разделения значений
+            std::istringstream pointStream(point);
+            pointStream >> x >> comma >> y;
+            points.emplace_back(x, y); // Предполагаем, что у вас есть структура Point
+        }
+    }
     void generatePoints(Range xRange, int numPoints) {
         points.clear();
         double step = (xRange.max - xRange.min) / numPoints;
@@ -136,6 +162,24 @@ public:
 
     const std::vector<Graph>& getGraphs() const {
         return graphs;
+    }
+    void saveToFile(const std::string& filename) {
+        std::ofstream outFile(filename);
+        for (const auto& graph : graphs) {
+            outFile << graph.serialize() << std::endl; // Сохраняем каждый график
+        }
+        outFile.close();
+    }
+    void loadFromFile(const std::string& filename) {
+        std::ifstream inFile(filename);
+        std::string line;
+        clear(); // Очищаем текущие графики перед загрузкой
+        while (std::getline(inFile, line)) {
+            Graph graph;
+            graph.deserialize(line); // Загружаем график из строки
+            addGraph(graph);
+        }
+        inFile.close();
     }
 };
 
@@ -250,8 +294,10 @@ public:
         std::cout << "2. Построить тригонометрическую функцию\n";
         std::cout << "3. Построить показательную функцию\n";
         std::cout << "4. Изменить диапазон\n";
-        std::cout << "5. Очистить графики\n"; // Новый пункт меню
-        std::cout << "6. Выход\n";
+        std::cout << "5. Очистить графики\n";
+        std::cout << "6. Сохранить графики в файл\n"; // Новый пункт меню
+        std::cout << "7. Загрузить графики из файла\n"; // Новый пункт меню
+        std::cout << "8. Выход\n";
     }
 
     void getNewRange(double& xMin, double& xMax, double& yMin, double& yMax) {
@@ -373,13 +419,33 @@ int main() {
             graphPlotter.clear(); // Очищаем графики
             plotArea.clear(); // Также очищаем данные в plotArea
             break;
-        case 6: // Exit
+        case 6: // Сохранить графики
+        {
+            std::string filename;
+            std::cout << "Введите имя файла для сохранения: ";
+            std::cin >> filename;
+            plotArea.saveToFile(filename);
+            std::cout << "Графики сохранены в файл " << filename << ".\n";
+            break;
+        }
+        case 7: // Загрузить графики
+        {
+            std::string filename;
+            std::cout << "Введите имя файла для загрузки: ";
+            std::cin >> filename;
+            plotArea.loadFromFile(filename);
+            std::cout << "Графики загружены из файла " << filename << ".\n";
+            break;
+        }
+        case 8: // Выход
             window.close();
             break;
+            // Обработка других случаев...
         default:
             std::cout << "Неверный выбор. Пожалуйста, попробуйте снова.\n";
             break;
         }
+
     }
 
     return 0;
